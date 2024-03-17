@@ -1,0 +1,11 @@
+.main {
+  display: flex;  
+}
+
+.nav {
+  width: 20%;  
+}
+
+.content {
+  flex: 1
+}
