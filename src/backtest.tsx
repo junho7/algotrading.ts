@@ -1,51 +1,48 @@
 import React, { useState } from "react";
 import { backtest } from "./ApiService";
-import { historicalData, FormData } from "./types";
+import { HistoricalData, UserFormData } from "./types";
 import Chart from "./chart";
+import { useToast } from "./ToastContext";
+import { useSelector, useDispatch } from "react-redux";
+import { updateInput } from "./actions";
+import { RootState } from "./store";
 
 const Backtest: React.FC = () => {
-  const today_date: Date = new Date();
-  const today_date_formatted =
-    today_date.getFullYear() +
-    "-" +
-    ("0" + (today_date.getMonth() + 1)).slice(-2) +
-    "-" +
-    ("0" + today_date.getDate()).slice(-2);
+  const formData = useSelector((state: RootState) => state.form.input);
+  const dispatch = useDispatch();
 
-  const [formData, setFormData] = useState<FormData>({
-    ticker: "AAPL",
-    endDate: today_date_formatted,
-    duration: "1 D",
-    timeAggregation: "MINUTES_ONE",
-  });
-  const [historicalData, setHistoricalData] = useState<historicalData[]>([
-    {
-      datetime: new Date(),
-      tzname: "",
-      ticker: "",
-      open: 0,
-      high: 0,
-      low: 0,
-      close: 0,
-      diff: 0,
-      volume: 0,
-      wap: 0,
-      count: 0,
-      signal: "",
-    },
-  ]);
+  const { showToast } = useToast();
+
+  // const today_date: Date = new Date();
+  // const today_date_formatted =
+  //   today_date.getFullYear() +
+  //   "-" +
+  //   ("0" + (today_date.getMonth() + 1)).slice(-2) +
+  //   "-" +
+  //   ("0" + today_date.getDate()).slice(-2);
+
+  // const [formData, setFormData] = useState<UserFormData>({
+  //   ticker: "AAPL",
+  //   endDate: today_date_formatted,
+  //   duration: "1 D",
+  //   timeAggregation: "MINUTES_ONE",
+  // });
+  const [historicalData, setHistoricalData] = useState<HistoricalData[]>([]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    // setFormData({ ...formData, [name]: value });
+    const updatedFormData: UserFormData = { ...formData, [name]: value };
+    dispatch(updateInput(updatedFormData));
   };
 
   const handleBacktest = async (e: React.FormEvent) => {
     e.preventDefault();
     const result = await backtest(formData);
     setHistoricalData(result);
+    showToast("Success!");
   };
 
   return (

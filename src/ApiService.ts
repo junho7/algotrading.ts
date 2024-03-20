@@ -1,13 +1,14 @@
-// ApiService.ts
-interface LoadDataParams {
-  ticker: string;
-  // fromDate: string;
-  endDate: string;
-  duration: string;
-  timeAggregation: string;
-}
+import { UserFormData } from "./types";
 
-export const loadData = async (params: LoadDataParams) => {
+// interface DataParams {
+//   ticker: string;
+//   // fromDate: string;
+//   endDate: string;
+//   duration: string;
+//   timeAggregation: string;
+// }
+
+export const saveData = async (params: UserFormData) => {
   const url = new URL('http://localhost:7007/loadData');
   
   // Append parameters as query strings
@@ -27,8 +28,10 @@ export const loadData = async (params: LoadDataParams) => {
     if (!response.ok) {
       throw new Error(`Error: ${response.status}`);
     }
-
+    
+    console.log('response: ', response)
     const data = await response.text();
+    console.log('data: ', data)
     return data;
   } catch (error) {
     console.error('Error fetching data from API:', error);
@@ -36,7 +39,7 @@ export const loadData = async (params: LoadDataParams) => {
   }
 };
 
-export const backtest = async (params: LoadDataParams) => {
+export const backtest = async (params: UserFormData) => {
   const url = new URL('http://localhost:7007/backtest');
   
   // Append parameters as query strings
