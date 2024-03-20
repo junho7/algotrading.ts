@@ -1,4 +1,4 @@
-export interface historicalData {
+export interface HistoricalData {
   datetime: Date
   tzname: string
   ticker: string
@@ -11,9 +11,11 @@ export interface historicalData {
   wap: number
   count: number
   signal: string
+  rsi: number
+  [key: string]: string | number | Date
 }
 
-export interface FormData {
+export interface UserFormData {
   ticker: string
   // fromDate: string;
   endDate: string
