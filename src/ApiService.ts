@@ -12,7 +12,7 @@ export const saveData = async (params: UserFormData) => {
   const url = new URL('http://localhost:7007/loadData');
   
   // Append parameters as query strings
-  url.search = new URLSearchParams({...params}).toString();
+  url.search = new URLSearchParams({...params, duration: params['duration'].toString()}).toString();
 
   console.log('url.toString(): ', url.toString())
 
@@ -43,7 +43,7 @@ export const backtest = async (params: UserFormData) => {
   const url = new URL('http://localhost:7007/backtest');
   
   // Append parameters as query strings
-  url.search = new URLSearchParams({...params}).toString();
+  url.search = new URLSearchParams({...params, duration: params['duration'].toString()}).toString();
 
   try {
     const response = await fetch(url.toString(), {

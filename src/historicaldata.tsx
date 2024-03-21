@@ -7,7 +7,8 @@ import { updateInput } from './actions';
 import { RootState } from './store';
 
 const SaveHistoricalData: React.FC = () => {
-  const formData = useSelector((state: RootState) => state.form.input);
+  const formData = useSelector((state: RootState) => state.form?.input);
+  console.log('formData: ', formData)
   const dispatch = useDispatch();
 
   const { showToast } = useToast();
@@ -47,6 +48,10 @@ const SaveHistoricalData: React.FC = () => {
   ) => {
     const { name, value } = e.target;
     console.log("value: ", value);
+    if(name === 'toDate'){
+      value.toString();
+    }
+    // const updatedFormData = { [name]: value };
     const updatedFormData: UserFormData = { ...formData, [name]: value };
     // setFormData({ ...formData, [name]: value });
     dispatch(updateInput(updatedFormData));
@@ -74,7 +79,7 @@ const SaveHistoricalData: React.FC = () => {
           <input
             type="text"
             name="ticker"
-            value={formData.ticker.toUpperCase()}
+            value={formData?.ticker?.toUpperCase() || ''}
             onChange={handleChange}
           />
         </label>
@@ -83,7 +88,7 @@ const SaveHistoricalData: React.FC = () => {
           <input
             type="date"
             name="toDate"
-            value={formData.endDate}
+            value={formData?.endDate || ''}
             onChange={handleChange}
           />
         </label>
@@ -91,7 +96,7 @@ const SaveHistoricalData: React.FC = () => {
           Duration(Day):
           <input
             name="duration"
-            value={formData.duration}
+            value={formData?.duration || ''}
             type="number"
             min="1"
             step="1"
@@ -102,7 +107,7 @@ const SaveHistoricalData: React.FC = () => {
           Time Aggregation:
           <select
             name="timeAggregation"
-            value={formData.timeAggregation}
+            value={formData?.timeAggregation || ''}
             onChange={handleChange}
           >
             <option value="SECONDS_THIRTY">30 Secs</option>

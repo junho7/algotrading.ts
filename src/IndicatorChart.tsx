@@ -7,7 +7,7 @@ interface IndicatorChartProps {
   indicator: string;
 }
 
-const IndicatorChart = (data: HistoricalData[], indicator: string): HistoricalData[] => {
+const IndicatorChart = (data: HistoricalData[], indicator: keyof HistoricalData): HistoricalData[] => {
 // const IndicatorChart: React.FC<IndicatorChartProps> = ({ data, indicator }) => {
   
   let indicatorData: HistoricalData[] = []

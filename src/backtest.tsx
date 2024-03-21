@@ -8,18 +8,19 @@ import { updateInput } from "./actions";
 import { RootState } from "./store";
 
 const Backtest: React.FC = () => {
-  const formData = useSelector((state: RootState) => state.form.input);
+  const formData = useSelector((state: RootState) => state.form?.input);  
+  console.log('formData: ', formData)
   const dispatch = useDispatch();
 
   const { showToast } = useToast();
 
-  // const today_date: Date = new Date();
-  // const today_date_formatted =
-  //   today_date.getFullYear() +
-  //   "-" +
-  //   ("0" + (today_date.getMonth() + 1)).slice(-2) +
-  //   "-" +
-  //   ("0" + today_date.getDate()).slice(-2);
+  const today_date: Date = new Date();
+  const today_date_formatted =
+    today_date.getFullYear() +
+    "-" +
+    ("0" + (today_date.getMonth() + 1)).slice(-2) +
+    "-" +
+    ("0" + today_date.getDate()).slice(-2);
 
   // const [formData, setFormData] = useState<UserFormData>({
   //   ticker: "AAPL",
@@ -33,6 +34,9 @@ const Backtest: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    if(name === 'toDate'){
+      value.toString();
+    }
     // setFormData({ ...formData, [name]: value });
     const updatedFormData: UserFormData = { ...formData, [name]: value };
     dispatch(updateInput(updatedFormData));
@@ -53,7 +57,7 @@ const Backtest: React.FC = () => {
           <input
             type="text"
             name="ticker"
-            value={formData.ticker.toUpperCase()}
+            value={formData?.ticker?.toUpperCase() || ''}
             onChange={handleChange}
           />
         </label>
@@ -62,7 +66,7 @@ const Backtest: React.FC = () => {
           <input
             type="date"
             name="toDate"
-            value={formData.endDate}
+            value={formData?.endDate || ''}
             onChange={handleChange}
           />
         </label>
@@ -70,7 +74,7 @@ const Backtest: React.FC = () => {
           Duration(Day):
           <input
             name="duration"
-            value={formData.duration}
+            value={formData?.duration || ''}
             type="number"
             min="1"
             step="1"
@@ -81,7 +85,7 @@ const Backtest: React.FC = () => {
           Time Aggregation:
           <select
             name="timeAggregation"
-            value={formData.timeAggregation}
+            value={formData?.timeAggregation || ''}
             onChange={handleChange}
           >
             <option value="SECONDS_THIRTY">30 Secs</option>

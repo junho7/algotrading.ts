@@ -4,21 +4,20 @@ import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { ToastProvider } from "./ToastContext";
-import store from "./store";
+import { store } from "./store";
 import { Provider } from "react-redux";
 
-const container = document.getElementById('root')!
+const container = document.getElementById("root")!;
 const root = createRoot(container);
 root.render(
-
-// ReactDOM.render(
+  // ReactDOM.render(
   <React.StrictMode>
     <Provider store={store}>
-      <ToastProvider>
-        <App />
-      </ToastProvider>
+        <ToastProvider>
+          <App />
+        </ToastProvider>
     </Provider>
-  </React.StrictMode>,
+  </React.StrictMode>
   // document.getElementById("root")
 );
 

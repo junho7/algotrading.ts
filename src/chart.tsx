@@ -2,16 +2,21 @@ import React, { useEffect, useRef } from "react";
 import * as d3 from "d3";
 import { HistoricalData } from "./types";
 import IndicatorChart from "./IndicatorChart";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "./store";
+import { updateChartData } from "./actions";
 
-const transformData = (data: HistoricalData[], key: string) =>
-  data.map((d) => ({
-    ...d,
-    datetime: new Date(d.datetime),
-    [key]: +d[key],
-  }));
+const transformData = (data: HistoricalData[], key: keyof HistoricalData) =>
+data.map((d) => ({
+  ...d,
+  datetime: new Date(d.datetime),
+  [key]: +d[key],
+}));
 const MINIMAPHEIGHTRATIO = 10;
 
 const Chart = (props: IChartProps) => {
+  const chartData = useSelector((state: RootState) => state.chart.data);  
+  const dispatch = useDispatch();
   useEffect(() => {
     draw();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -366,7 +371,7 @@ const Chart = (props: IChartProps) => {
             const temp = ["rsi"];
             temp.forEach((indicatorType) =>
               createIndicatorChart(
-                indicatorType,
+                indicatorType as keyof HistoricalData,
                 filteredData,
                 innerWidth,
                 innerHeight,
@@ -396,7 +401,7 @@ const Chart = (props: IChartProps) => {
   };
 
   const createIndicatorChart = (
-    indicatorType: string,
+    indicatorType: keyof HistoricalData,
     data: HistoricalData[],
     innerWidth: number,
     innerHeight: number,

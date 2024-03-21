@@ -1,5 +1,5 @@
 export interface HistoricalData {
-  datetime: Date
+  datetime: Date|string
   tzname: string
   ticker: string
   open: number
@@ -12,13 +12,14 @@ export interface HistoricalData {
   count: number
   signal: string
   rsi: number
-  [key: string]: string | number | Date
+  // [key: string]: string | number | Date
 }
 
 export interface UserFormData {
   ticker: string
   // fromDate: string;
   endDate: string
-  duration: string
+  duration: number
   timeAggregation: string
+  [key: string]: string|number
 }
