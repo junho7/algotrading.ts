@@ -1,34 +1,17 @@
-import React, { useState } from "react";
+import React from "react";
 import { backtest } from "./ApiService";
-import { HistoricalData, UserFormData } from "./types";
+import { UserFormData } from "./types";
 import Chart from "./chart";
 import { useToast } from "./ToastContext";
 import { useSelector, useDispatch } from "react-redux";
-import { updateInput } from "./actions";
+import { updateChartData, updateInput } from "./actions";
 import { RootState } from "./store";
 
 const Backtest: React.FC = () => {
   const formData = useSelector((state: RootState) => state.form?.input);  
-  console.log('formData: ', formData)
   const dispatch = useDispatch();
 
   const { showToast } = useToast();
-
-  const today_date: Date = new Date();
-  const today_date_formatted =
-    today_date.getFullYear() +
-    "-" +
-    ("0" + (today_date.getMonth() + 1)).slice(-2) +
-    "-" +
-    ("0" + today_date.getDate()).slice(-2);
-
-  // const [formData, setFormData] = useState<UserFormData>({
-  //   ticker: "AAPL",
-  //   endDate: today_date_formatted,
-  //   duration: "1 D",
-  //   timeAggregation: "MINUTES_ONE",
-  // });
-  const [historicalData, setHistoricalData] = useState<HistoricalData[]>([]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -37,7 +20,6 @@ const Backtest: React.FC = () => {
     if(name === 'toDate'){
       value.toString();
     }
-    // setFormData({ ...formData, [name]: value });
     const updatedFormData: UserFormData = { ...formData, [name]: value };
     dispatch(updateInput(updatedFormData));
   };
@@ -45,7 +27,7 @@ const Backtest: React.FC = () => {
   const handleBacktest = async (e: React.FormEvent) => {
     e.preventDefault();
     const result = await backtest(formData);
-    setHistoricalData(result);
+    dispatch(updateChartData([...result]));
     showToast("Success!");
   };
 
@@ -99,7 +81,6 @@ const Backtest: React.FC = () => {
         <button type="submit">backtest</button>
       </form>
       <Chart
-        data={historicalData}
         left={50}
         top={50}
         right={50}

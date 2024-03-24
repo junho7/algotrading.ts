@@ -7,5 +7,9 @@ export function updateInput(input: UserFormData) {
 }
 
 export function updateChartData(data: HistoricalData[]) {
-  return { type: actionTypes.UPDATE_INPUT, payload: data };
+  return { type: actionTypes.UPDATE_CHARTDATA, payload: data };
+}
+
+export function updateMinimapSelection(selection: [number, number]) {
+  return { type: actionTypes.UPDATE_MINIMAPSELECTION, payload: selection };
 }

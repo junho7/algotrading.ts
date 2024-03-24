@@ -7,6 +7,7 @@ interface FormState {
 }
 interface ChartDataState {
   data: HistoricalData[];
+  selection: [number, number];
 }
 
 const today_date: Date = new Date();
@@ -16,13 +17,6 @@ const today_date_formatted =
   ("0" + (today_date.getMonth() + 1)).slice(-2) +
   "-" +
   ("0" + today_date.getDate()).slice(-2);
-
-// const initialFormState: UserFormData = {
-//   ticker: "SPY",
-//   endDate: today_date_formatted,
-//   duration: "1 D",
-//   timeAggregation: "MINUTES_ONE",
-// };
 
 const initialFormState: FormState = {
   input: {
@@ -51,10 +45,10 @@ const initialChartState: ChartDataState = {
       rsi: 0,
     },
   ],
+  selection: [-1, -1]
 };
 
 export function formReducer(state: FormState = initialFormState, action: any): FormState {
-  console.log('state: ', state)
   switch (action.type) {
     case actionTypes.UPDATE_INPUT:
       return {
@@ -79,6 +73,11 @@ export function chartDataReducer(
       return {
         ...state,
         data: action.payload,
+      };
+    case actionTypes.UPDATE_MINIMAPSELECTION:
+      return {
+        ...state,
+        selection: action.payload,
       };
     default:
       return state;

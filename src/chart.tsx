@@ -4,23 +4,25 @@ import { HistoricalData } from "./types";
 import IndicatorChart from "./IndicatorChart";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "./store";
-import { updateChartData } from "./actions";
+import { updateMinimapSelection } from "./actions";
 
 const transformData = (data: HistoricalData[], key: keyof HistoricalData) =>
-data.map((d) => ({
-  ...d,
-  datetime: new Date(d.datetime),
-  [key]: +d[key],
-}));
+  data.map((d) => ({
+    ...d,
+    datetime: new Date(d.datetime),
+    [key]: +d[key],
+  }));
 const MINIMAPHEIGHTRATIO = 10;
 
 const Chart = (props: IChartProps) => {
-  const chartData = useSelector((state: RootState) => state.chart.data);  
+  const { data: chartData, selection: minimapSelection } = useSelector(
+    (state: RootState) => state.chart
+  );
   const dispatch = useDispatch();
   useEffect(() => {
     draw();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props]);
+  }, [chartData]);
 
   const mainChartRef = useRef(null);
   const minimapRef = useRef(null);
@@ -30,11 +32,12 @@ const Chart = (props: IChartProps) => {
 
   const draw = () => {
     if (
-      props.data &&
+      chartData.length > 1 &&
       mainChartRef.current &&
       minimapRef.current &&
       indicatorChartRef.current
     ) {
+      console.log("draw");
       d3.select(mainChartRef.current).selectAll("*").remove();
 
       const miniSvg = d3.select(minimapRef.current);
@@ -49,21 +52,12 @@ const Chart = (props: IChartProps) => {
       const marginRight = props.right;
       const marginBottom = props.bottom;
 
-      const svg = d3
-        .select(".chart")
-        .append("svg")
-        .attr("width", width)
-        .attr("height", height);
+      let data = chartData.map((x) => Object.assign({}, x));
 
-      let data = props["data"];
+      const transformedData = transformData(data, "close");
 
-      const transformedData = transformData(data, 'close');
-
-      const x = d3.scalePoint().range([0, width]).padding(0.5);
+      const x = d3.scaleBand().range([0, innerWidth]).padding(0.5);
       const y = d3
-        .scaleLinear()
-        .rangeRound([height - marginBottom - marginTop, marginTop]);
-      const yRsi = d3
         .scaleLinear()
         .rangeRound([height - marginBottom - marginTop, marginTop]);
 
@@ -72,10 +66,9 @@ const Chart = (props: IChartProps) => {
         d3.min(transformedData, (d) => d.close),
         d3.max(transformedData, (d) => d.close),
       ] as [number, number]);
-      yRsi.domain([0, 100]); // RSI typically ranges from 0 to 100
 
+      const starttime1 = performance.now();
       createMainChart(
-        svg,
         data,
         innerWidth,
         innerHeight,
@@ -86,7 +79,10 @@ const Chart = (props: IChartProps) => {
         x,
         y
       );
+      const endtime1 = performance.now();
+      console.log("createMainChart: ", endtime1 - starttime1);
 
+      const starttime3 = performance.now();
       createIndicatorChart(
         "rsi",
         data,
@@ -99,7 +95,10 @@ const Chart = (props: IChartProps) => {
         x,
         y
       );
+      const endtime3 = performance.now();
+      console.log("createIndicatorChart: ", endtime3 - starttime3);
 
+      const starttime2 = performance.now();
       createMinimap(
         miniSvg,
         data,
@@ -112,11 +111,12 @@ const Chart = (props: IChartProps) => {
         x,
         y
       );
+      const endtime2 = performance.now();
+      console.log("createMinimap: ", endtime2 - starttime2);
     }
   };
 
   const createMainChart = (
-    svg: d3.Selection<SVGSVGElement, unknown, HTMLElement, any>,
     data: HistoricalData[],
     innerWidth: number,
     innerHeight: number,
@@ -127,9 +127,18 @@ const Chart = (props: IChartProps) => {
     x: d3.ScalePoint<string>,
     y: d3.ScaleLinear<number, number, never>
   ) => {
-    const g = svg
-      .append("g")
-      .attr("transform", `translate(${marginLeft},${marginTop})`);
+    const svg = d3
+    .select(".chart")
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+  const g = svg
+    .append("g")
+    .attr(
+      "transform",
+      `translate(${marginLeft}, ${marginTop})`
+    );
 
     // You can't directly draw a line using scalePoint, so you need to connect points with line segments
     data.forEach((point, i) => {
@@ -225,19 +234,6 @@ const Chart = (props: IChartProps) => {
       }
     });
 
-    // RSI line
-    // g.append('path')
-    //     .datum(data)
-    //     .attr('fill', 'none')
-    //     .attr('stroke', 'orange')
-    //     .attr('stroke-linejoin', 'round')
-    //     .attr('stroke-linecap', 'round')
-    //     .attr('stroke-width', 1.5)
-    //     .attr('d', d3.line<historicalData>()
-    //         .x(d => x(new Date(d.datetime)))
-    //         .y(d => yRsi(d.rsi))
-    //     );
-
     // Buy and sell signals
     // g.selectAll('buySignal')
     //     .data(data.filter(d => d.signal === 'BUY'))
@@ -274,10 +270,10 @@ const Chart = (props: IChartProps) => {
   ) => {
     const x = mainX
       .domain(data.map((d) => d.datetime.toString()))
-      .range([0, width])
+      .range([0, innerWidth])
       .padding(0.5);
 
-    const transformedData = transformData(data, 'close');
+    const transformedData = transformData(data, "close");
 
     const y = mainY
       .copy()
@@ -287,8 +283,11 @@ const Chart = (props: IChartProps) => {
       ] as [number, number])
       .rangeRound([height / MINIMAPHEIGHTRATIO, 0]);
 
-    const g = svg.append("g").attr("transform", `translate(${marginLeft},0)`);
-
+    const g = svg
+      .append("g")
+      .attr("transform", `translate(${marginLeft},0)`)
+      .attr("width", width - marginLeft - marginRight)
+      .attr("height", height / MINIMAPHEIGHTRATIO + marginTop + marginBottom);
     // You can't directly draw a line using scalePoint, so you need to connect points with line segments
     data.forEach((point, i) => {
       if (i < data.length - 1) {
@@ -316,18 +315,37 @@ const Chart = (props: IChartProps) => {
     });
 
     // Brush for selecting the region
-    const brush = d3
-      .brushX()
+    const brush = d3.brushX();
+
+    brush
       .extent([
         [0, 0],
-        [width, height / MINIMAPHEIGHTRATIO],
+        [innerWidth, height / MINIMAPHEIGHTRATIO],
       ])
       .on("brush end", brushed);
 
-    g.append("g").attr("class", "brush").call(brush);
+    const brushArea = svg
+      .append("g")
+      .attr("class", "brush-area")
+      .attr("transform", `translate(${marginLeft},0)`);
 
-    function brushed(event: d3.D3BrushEvent<unknown>) {
+    brushArea.call(brush);
+    const brushNode = brushArea.node();
+    if (
+      brushNode instanceof SVGGElement &&
+      minimapSelection.toString() !== "-1,-1"
+    ) {
+      brush.move(brushArea as any, minimapSelection);
+    } else {
+      brush.move(brushArea as any, [
+        ((width - marginLeft - marginRight) / 4) * 3,
+        width - marginLeft - marginRight,
+      ]);
+    }
+
+    function brushed(event: d3.D3BrushEvent<SVGGElement>) {
       const selection = event.selection as [number, number];
+      dispatch(updateMinimapSelection(selection));
       if (selection) {
         const [x0, x1] = selection.map((r) => invertPointScale(x, r));
         if (x0 && x1) {
@@ -356,7 +374,6 @@ const Chart = (props: IChartProps) => {
               .rangeRound([height - marginBottom - marginTop, marginTop]);
 
             createMainChart(
-              mainSvg,
               filteredData,
               innerWidth,
               innerHeight,
@@ -418,40 +435,30 @@ const Chart = (props: IChartProps) => {
       .attr("width", width)
       .attr("height", height / MINIMAPHEIGHTRATIO + marginTop + marginBottom);
 
-    const g = svg.append("g").attr("transform", `translate(${marginLeft}, ${marginTop/MINIMAPHEIGHTRATIO})`);
-
-    const timeFormat = d3.timeFormat("%Y-%m-%d %H:%M");
+    const g = svg
+      .append("g")
+      .attr(
+        "transform",
+        `translate(${marginLeft}, ${marginTop / MINIMAPHEIGHTRATIO})`
+      );
 
     const rsiData = IndicatorChart(data, indicatorType);
-    // console.log('rsiData: ', rsiData)
 
     // X-axis
-    g.append("g")
-      .attr("transform", `translate(0,${height / MINIMAPHEIGHTRATIO})`)
-      // .call(
-        // d3
-          // .axisBottom(x)
-          // .tickValues(x.domain().filter((_, i) => i % 20 === 0))
-          // .tickFormat((d, i) => timeFormat(new Date(d)))
-      // )
-      // .selectAll("text")
-      // .attr("y", 0)
-      // .attr("x", -50)
-      // .attr("transform", "rotate(-90)");
+    g.append("g").attr(
+      "transform",
+      `translate(0,${height / MINIMAPHEIGHTRATIO})`
+    );
 
     const transformedData = transformData(rsiData, indicatorType);
 
     const newX = x
-    .copy()
-    .domain(transformedData.map((d) => d.datetime.toString()));
+      .copy()
+      .domain(transformedData.map((d) => d.datetime.toString()));
 
     const newY = y
       .copy()
       .domain([0, 100])
-      // .domain([
-      //   d3.min(transformedData, (d) => +d[indicatorType]),
-      //   d3.max(transformedData, (d) => +d[indicatorType]),
-      // ] as [number, number])
       .rangeRound([height / MINIMAPHEIGHTRATIO, 0]);
     // Y-axis
     g.append("g")
@@ -460,44 +467,20 @@ const Chart = (props: IChartProps) => {
       .attr("fill", "#000")
       .attr("transform", "rotate(-90)")
       .attr("y", -30)
-      .attr("x", 0-(height/MINIMAPHEIGHTRATIO/2))
-      .style('text-anchor', 'middle')
-      // .attr("y", 6)
+      .attr("x", 0 - height / MINIMAPHEIGHTRATIO / 2)
+      .style("text-anchor", "middle")
       .attr("dy", "0.71em")
       .attr("text-anchor", "end")
       .text("RSI");
 
-    // Define the arrow markers for buy and sell signals
-    // svg
-    //   .append("defs")
-    //   .selectAll("marker")
-    //   .data(["buy", "sell"])
-    //   .enter()
-    //   .append("marker")
-    //   .attr("id", (d) => d)
-    //   .attr("viewBox", "0 -5 10 10")
-    //   .attr("refX", 10)
-    //   .attr("refY", 0)
-    //   .attr("markerWidth", 6)
-    //   .attr("markerHeight", 6)
-    //   .attr("orient", "auto")
-    //   .append("path")
-    //   .attr("fill", (d) => (d === "buy" ? "green" : "red"))
-    //   .attr("d", (d) => (d === "buy" ? "M0,-5L10,0L0,5" : "M10,-5L0,0L10,5"));
-
     // You can't directly draw a line using scalePoint, so you need to connect points with line segments
     transformedData.forEach((point, i) => {
-      // console.log('rsi: ', point.rsi)
       if (i < transformedData.length - 1) {
         const nextPoint = transformedData[i + 1];
         const x1 = newX(point.datetime.toString());
         const x2 = newX(nextPoint.datetime.toString());
         const y1 = newY(+point[indicatorType]);
         const y2 = newY(+nextPoint[indicatorType]);
-        console.log('x1: ', x1)
-        console.log('x2: ', x2)
-        console.log('y1: ', y1)
-        console.log('y2: ', y2)
 
         if (
           x1 !== undefined &&
@@ -519,18 +502,17 @@ const Chart = (props: IChartProps) => {
 
   return (
     <>
-      <svg className="chart" width={width} height={height} ref={mainChartRef} />
-      <svg
-        width={width}
-        height={height / MINIMAPHEIGHTRATIO}
-        ref={minimapRef}
-      />
-      <div
-        className="indicatorChart"
-        // width={width}
-        // height={height / MINIMAPHEIGHTRATIO}
-        ref={indicatorChartRef}
-      />
+      <div className="chart" style={{width: 1000}} ref={mainChartRef}>
+        {/* <svg width={width} height={height} ref={mainChartRef} /> */}
+      </div>
+      <div>
+        <svg
+          width={width}
+          height={height / MINIMAPHEIGHTRATIO}
+          ref={minimapRef}
+        />
+      </div>
+      <div className="indicatorChart" ref={indicatorChartRef} />
     </>
   );
 };
@@ -542,12 +524,6 @@ export interface IChartProps {
   right: number;
   bottom: number;
   left: number;
-  data: HistoricalData[];
 }
-
-// export interface DataPoint {
-//   datetime: string;
-//   close: number;
-// }
 
 export default Chart;
