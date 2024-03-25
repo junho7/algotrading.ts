@@ -1,5 +1,5 @@
 // IndicatorChart.tsx
-import { HistoricalData } from "./types"; // Adjust the import based on your file structure
+import { HistoricalData } from "./types";
 
 const IndicatorChart = (
   data: HistoricalData[],
