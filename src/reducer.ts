@@ -43,6 +43,11 @@ const initialChartState: ChartDataState = {
       count: 0,
       signal: "",
       rsi: 0,
+      macd: {
+        macdLine: 0,
+        signalLine: 0,
+        histogram: 0
+      }
     },
   ],
   selection: [-1, -1]

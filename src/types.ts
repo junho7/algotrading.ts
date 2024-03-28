@@ -12,9 +12,16 @@ export interface HistoricalData {
   count: number
   signal: string
   rsi: number
+  macd: MACDData
   // [key: string]: string | number | Date
 }
 
+export interface MACDData {
+  macdLine: number;
+  signalLine: number;
+  histogram: number;
+  [key: string]: number;
+}
 export interface UserFormData {
   ticker: string
   // fromDate: string;

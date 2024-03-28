@@ -1,18 +1,23 @@
 import React, { useEffect, useRef } from "react";
 import * as d3 from "d3";
 import { HistoricalData } from "./types";
-import IndicatorChart from "./IndicatorChart";
+import createRSIChart from "./rsiChart";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "./store";
 import { updateMinimapSelection } from "./actions";
+import { HEIGHT_RATIO } from "./constant";
+import createMACDChart from "./macd";
 
-const transformData = (data: HistoricalData[], key: keyof HistoricalData) =>
+export const transformData = (
+  data: HistoricalData[],
+  key: keyof HistoricalData
+) =>
   data.map((d) => ({
     ...d,
     datetime: new Date(d.datetime),
     [key]: +d[key],
   }));
-const MINIMAPHEIGHTRATIO = 10;
+const MINIMAP_HEIGHT_RATIO = HEIGHT_RATIO;
 
 const Chart = (props: IChartProps) => {
   const { data: chartData, selection: minimapSelection } = useSelector(
@@ -79,7 +84,7 @@ const Chart = (props: IChartProps) => {
         y
       );
 
-      createIndicatorChart(
+      createRSIChart(
         "rsi",
         data,
         innerWidth,
@@ -115,7 +120,6 @@ const Chart = (props: IChartProps) => {
     marginTop: number,
     marginRight: number,
     marginBottom: number,
-    // x: d3.ScalePoint<string>,
     x: d3.ScaleBand<string>,
     y: d3.ScaleLinear<number, number, never>
   ) => {
@@ -128,29 +132,6 @@ const Chart = (props: IChartProps) => {
     const g = svg
       .append("g")
       .attr("transform", `translate(${marginLeft}, ${marginTop})`);
-
-    // You can't directly draw a line using scalePoint, so you need to connect points with line segments
-    // data.forEach((point, i) => {
-    //   if (i < data.length) {
-    //     const x1 = x(point.datetime.toString());
-
-    //     if (
-    //       x1 !== undefined &&
-    //       ["06:30", "13:00"].includes(
-    //         d3.timeFormat("%H:%M")(new Date(point.datetime))
-    //       )
-    //     ) {
-    //       g.append("line")
-    //         .attr("x1", x1)
-    //         .attr("x2", x1)
-    //         .attr("y1", 0)
-    //         .attr("y2", height)
-    //         .attr("stroke", "blue")
-    //         .attr("stroke-width", 1)
-    //         .attr("stroke-dasharray", 2.2);
-    //     }
-    //   }
-    // });
 
     const timeFormat = d3.timeFormat("%Y-%m-%d %H:%M");
 
@@ -197,38 +178,12 @@ const Chart = (props: IChartProps) => {
       .attr("fill", (d) => (d === "buy" ? "green" : "red"))
       .attr("d", (d) => (d === "buy" ? "M0,-5L10,0L0,5" : "M10,-5L0,0L10,5"));
 
-    // You can't directly draw a line using scalePoint, so you need to connect points with line segments
-    // data.forEach((point, i) => {
-    //   if (i < data.length - 1) {
-    //     const nextPoint = data[i + 1];
-    //     const x1 = x(point.datetime.toString());
-    //     const x2 = x(nextPoint.datetime.toString());
-    //     const y1 = y(point.close);
-    //     const y2 = y(nextPoint.close);
-
-    //     if (
-    //       x1 !== undefined &&
-    //       x2 !== undefined &&
-    //       y1 !== undefined &&
-    //       y2 !== undefined
-    //     ) {
-    //       g.append("line")
-    //         .attr("x1", x1)
-    //         .attr("y1", y1)
-    //         .attr("x2", x2)
-    //         .attr("y2", y2)
-    //         .attr("stroke", "steelblue")
-    //         .attr("stroke-width", 1.5);
-    //     }
-    //   }
-    // });
     const line = d3
       .line<HistoricalData>()
       .x((d, i) => x(d.datetime.toString())! + x.bandwidth() / 2)
       .y((d) => y(d.close));
 
     g.append("path")
-      // .attr('transform', `translate(${marginLeft}, 0)`)
       .datum(data)
       .attr("fill", "none")
       .attr("stroke", "steelblue")
@@ -266,11 +221,9 @@ const Chart = (props: IChartProps) => {
     marginTop: number,
     marginRight: number,
     marginBottom: number,
-    // mainX: d3.ScalePoint<string>,
     mainX: d3.ScaleBand<string>,
     mainY: d3.ScaleLinear<number, number, never>
   ) => {
-
     const transformedData = transformData(data, "close");
 
     const newX = mainX
@@ -285,13 +238,13 @@ const Chart = (props: IChartProps) => {
         d3.min(transformedData, (d) => d.close),
         d3.max(transformedData, (d) => d.close),
       ] as [number, number])
-      .rangeRound([height / MINIMAPHEIGHTRATIO, 0]);
+      .rangeRound([height / MINIMAP_HEIGHT_RATIO, 0]);
 
     const g = svg
       .append("g")
       .attr("transform", `translate(${marginLeft},0)`)
       .attr("width", width - marginLeft - marginRight)
-      .attr("height", height / MINIMAPHEIGHTRATIO + marginTop + marginBottom);
+      .attr("height", height / MINIMAP_HEIGHT_RATIO + marginTop + marginBottom);
 
     const line = d3
       .line<HistoricalData>()
@@ -311,7 +264,7 @@ const Chart = (props: IChartProps) => {
     brush
       .extent([
         [0, 0],
-        [innerWidth, height / MINIMAPHEIGHTRATIO],
+        [innerWidth, height / MINIMAP_HEIGHT_RATIO],
       ])
       .on("brush end", brushed);
 
@@ -376,21 +329,41 @@ const Chart = (props: IChartProps) => {
               newY
             );
 
-            const temp = ["rsi"];
-            temp.forEach((indicatorType) =>
-              createIndicatorChart(
-                indicatorType as keyof HistoricalData,
-                filteredData,
-                innerWidth,
-                innerHeight,
-                marginLeft,
-                marginTop,
-                marginRight,
-                marginBottom,
-                newX,
-                y
-              )
-            );
+            const temp = ["rsi", "macd"];
+            temp.forEach((indicatorType) => {
+              switch (indicatorType) {
+                case "rsi":
+                  createRSIChart(
+                    indicatorType as keyof HistoricalData,
+                    filteredData,
+                    width,
+                    height,
+                    marginLeft,
+                    marginTop,
+                    marginRight,
+                    marginBottom,
+                    newX,
+                    y
+                  );
+                  break;
+                case "macd":
+                  createMACDChart(
+                    indicatorType as keyof HistoricalData,
+                    filteredData,
+                    width,
+                    height,
+                    marginLeft,
+                    marginTop,
+                    marginRight,
+                    marginBottom,
+                    newX,
+                    y
+                  )
+                  break;
+                default:
+                  console.log("Default");
+              }
+            });
           }
         }
       }
@@ -408,75 +381,73 @@ const Chart = (props: IChartProps) => {
     }
   };
 
-  const createIndicatorChart = (
-    indicatorType: keyof HistoricalData,
-    data: HistoricalData[],
-    innerWidth: number,
-    innerHeight: number,
-    marginLeft: number,
-    marginTop: number,
-    marginRight: number,
-    marginBottom: number,
-    x: d3.ScaleBand<string>,
-    y: d3.ScaleLinear<number, number, never>
-  ) => {
-    const svg = d3
-      .select(".indicatorChart")
-      .append("svg")
-      .attr("width", width)
-      .attr("height", height / MINIMAPHEIGHTRATIO + marginTop + marginBottom);
+  // const createRSIChart = (
+  //   indicatorType: keyof HistoricalData,
+  //   data: HistoricalData[],
+  //   innerWidth: number,
+  //   innerHeight: number,
+  //   marginLeft: number,
+  //   marginTop: number,
+  //   marginRight: number,
+  //   marginBottom: number,
+  //   x: d3.ScaleBand<string>,
+  //   y: d3.ScaleLinear<number, number, never>
+  // ) => {
+  //   const svg = d3
+  //     .select(".indicatorChart")
+  //     .append("svg")
+  //     .attr("width", width)
+  //     .attr("height", height / MINIMAPHEIGHTRATIO );
 
-    const g = svg
-      .append("g")
-      .attr(
-        "transform",
-        `translate(${marginLeft}, ${marginTop / MINIMAPHEIGHTRATIO})`
-      );
+  //   const g = svg
+  //     .append("g")
+  //     .attr(
+  //       "transform",
+  //       `translate(${marginLeft}, ${marginTop / MINIMAPHEIGHTRATIO})`
+  //     );
 
-    const rsiData = IndicatorChart(data, indicatorType);
+  //   const rsiData = IndicatorChart(data, indicatorType);
 
-    // X-axis
-    g.append("g").attr(
-      "transform",
-      `translate(0,${height / MINIMAPHEIGHTRATIO})`
-    );
-    const transformedData = transformData(rsiData, indicatorType);
+  //   // X-axis
+  //   g.append("g").attr(
+  //     "transform",
+  //     `translate(0,${height / MINIMAPHEIGHTRATIO})`
+  //   );
+  //   const transformedData = transformData(rsiData, indicatorType);
 
-    const newX = x
-      .copy()
-      .domain(transformedData.map((d) => d.datetime.toString()));
+  //   const newX = x
+  //     .copy()
+  //     .domain(transformedData.map((d) => d.datetime.toString()));
 
-    const newY = y
-      .copy()
-      .domain([0, 100])
-      .rangeRound([height / MINIMAPHEIGHTRATIO, 0]);
-    // Y-axis
-    g.append("g")
-      .call(d3.axisLeft(newY))
-      .append("text")
-      .attr("fill", "#000")
-      .attr("transform", "rotate(-90)")
-      .attr("y", -30)
-      .attr("x", 0 - height / MINIMAPHEIGHTRATIO / 2)
-      .style("text-anchor", "middle")
-      .attr("dy", "0.71em")
-      .attr("text-anchor", "end")
-      .text("RSI");
+  //   const newY = y
+  //     .copy()
+  //     .domain([0, 100])
+  //     .rangeRound([height / MINIMAPHEIGHTRATIO, 0]);
+  //   // Y-axis
+  //   g.append("g")
+  //     .call(d3.axisLeft(newY))
+  //     .append("text")
+  //     .attr("fill", "#000")
+  //     .attr("transform", "rotate(-90)")
+  //     .attr("y", -30)
+  //     .attr("x", 0 - height / MINIMAPHEIGHTRATIO / 2)
+  //     .style("text-anchor", "middle")
+  //     .attr("dy", "0.71em")
+  //     .attr("text-anchor", "end")
+  //     .text("RSI");
 
-    // You can't directly draw a line using scalePoint, so you need to connect points with line segments
+  //   const line = d3
+  //     .line<HistoricalData>()
+  //     .x((d, i) => newX(d.datetime.toString())! + newX.bandwidth() / 2)
+  //     .y((d) => y(d.close));
 
-    const line = d3
-      .line<HistoricalData>()
-      .x((d, i) => newX(d.datetime.toString())! + newX.bandwidth() / 2)
-      .y((d) => y(d.close));
-
-    g.append("path")
-      .datum(transformedData)
-      .attr("fill", "none")
-      .attr("stroke", "steelblue")
-      .attr("stroke-width", 1.5)
-      .attr("d", line);
-  };
+  //   g.append("path")
+  //     .datum(transformedData)
+  //     .attr("fill", "none")
+  //     .attr("stroke", "steelblue")
+  //     .attr("stroke-width", 1.5)
+  //     .attr("d", line);
+  // };
 
   return (
     <>
@@ -484,7 +455,7 @@ const Chart = (props: IChartProps) => {
       <div>
         <svg
           width={width}
-          height={height / MINIMAPHEIGHTRATIO}
+          height={height / MINIMAP_HEIGHT_RATIO}
           ref={minimapRef}
         />
       </div>
